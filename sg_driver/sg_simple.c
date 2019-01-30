@@ -103,7 +103,7 @@ int main(int argc, char * argv[])
 	//	res_sz = ((res_sz/0x1000) + 1) * 0x1000; 
     	//ioctl(sg_fd, SG_SET_RESERVED_SIZE, &res_sz);
 
-	size_t res_sz = 4 * (1 << 20);
+	size_t res_sz = 126 * (1 << 10);
 	if (0 == (res_sz % 0x1000))
 		res_sz = ((res_sz/0x1000) + 1) * 0x1000;
 	//res_sz = 0; 
@@ -175,7 +175,7 @@ int main(int argc, char * argv[])
     /* could call munmap(inqBuff, INQ_REPLY_LEN) here but following close()
        causes this too happen anyway */
     inqBuff2 = (unsigned char *)mmap(NULL, res_sz, PROT_READ | PROT_WRITE,
-                                     MAP_SHARED, sg_fd, res_sz);
+                                     MAP_SHARED, sg_fd, 0);
     if (MAP_FAILED == inqBuff2) {
         snprintf(ebuff, EBUFF_SZ, "sg_simple4: error using mmap() 2 on "
                  "file: %s", file_name);
@@ -188,12 +188,12 @@ int main(int argc, char * argv[])
 	memset(inqBuff, 0, res_sz);
 	memset(inqBuff2, 0, res_sz);
 
-	for (int i = 0; i < res_sz; i+=0x1000) {
-	    
-		printf("buff virt addr:%lx, phys addr:%lx.\n", (uintptr_t)inqBuff + i, get_physical_addr((uintptr_t)inqBuff) + i);
-		printf("buff2 virt addr:%lx, phys addr:%lx.\n", (uintptr_t)inqBuff2 + i, get_physical_addr((uintptr_t)inqBuff2) + i);
+	//for (int i = 0; i < res_sz; i+=0x1000) {
+	//    
+	//	printf("buff virt addr:%lx, phys addr:%lx.\n", (uintptr_t)inqBuff + i, get_physical_addr((uintptr_t)inqBuff) + i);
+	//	printf("buff2 virt addr:%lx, phys addr:%lx.\n", (uintptr_t)inqBuff2 + i, get_physical_addr((uintptr_t)inqBuff2) + i);
 
-	}
+	//}
  
     //if (inqBuff2[0])
     //    printf("non-null char at inqBuff2[0]\n");
