@@ -103,7 +103,7 @@ int main(int argc, char * argv[])
 	//	res_sz = ((res_sz/0x1000) + 1) * 0x1000; 
     	//ioctl(sg_fd, SG_SET_RESERVED_SIZE, &res_sz);
 
-	size_t res_sz = 126 * (1 << 10);
+	int res_sz = 120 * (1 << 10);
 	if (0 == (res_sz % 0x1000))
 		res_sz = ((res_sz/0x1000) + 1) * 0x1000;
 	//res_sz = 0; 
@@ -113,11 +113,18 @@ int main(int argc, char * argv[])
 		perror(ebuff);
 		return 1;
 	}
-	printf("max size:%zuKB.\n", res_sz >> 10);
+	int real_sz = 0;
+    	if (ioctl(sg_fd, SG_GET_RESERVED_SIZE, &real_sz) < 0) {
+		snprintf(ebuff, EBUFF_SZ, "sg_get_reserved_size: error using ioctl on "
+			 "file: %s", file_name);
+		perror(ebuff);
+		return 1;
+	}
+	printf("max size:%uKB.\n", real_sz >> 10);
 	
     /* since I know this program will only read from inqBuff then I use
        PROT_READ rather than PROT_READ | PROT_WRITE */
-    inqBuff = (unsigned char *)mmap(NULL, res_sz, PROT_READ | PROT_WRITE,
+    inqBuff = (unsigned char *)mmap(NULL, real_sz, PROT_READ | PROT_WRITE,
                                     MAP_SHARED, sg_fd, 0);
     if (MAP_FAILED == inqBuff) {
         snprintf(ebuff, EBUFF_SZ, "sg_simple4: error using mmap() on "
@@ -170,12 +177,41 @@ int main(int argc, char * argv[])
         return 1;
     }
 
-
+    int sg1_fd;
+    /* N.B. An access mode of O_RDWR is required for some SCSI commands */
+    if ((sg1_fd = open(file_name, O_RDWR)) < 0) {
+        snprintf(ebuff, EBUFF_SZ,
+                 "sg_simple4: error opening file: %s", file_name);
+        perror(ebuff);
+        return 1;
+    }
+    /* Just to be safe, check we have a new sg device by trying an ioctl */
+    if ((ioctl(sg1_fd, SG_GET_VERSION_NUM, &k) < 0) || (k < 30122)) {
+        printf("sg_simple4: %s needs sg driver version >= 3.1.22\n",
+               file_name);
+        close(sg1_fd);
+        return 1;
+    }
+    	
+	if (ioctl(sg1_fd, SG_SET_RESERVED_SIZE, &res_sz) < 0) {
+		snprintf(ebuff, EBUFF_SZ, "sg_set_reserved_size: error using ioctl on "
+			 "file: %s", file_name);
+		perror(ebuff);
+		return 1;
+	}
+	real_sz = 0;
+    	if (ioctl(sg1_fd, SG_GET_RESERVED_SIZE, &real_sz) < 0) {
+		snprintf(ebuff, EBUFF_SZ, "sg_get_reserved_size: error using ioctl on "
+			 "file: %s", file_name);
+		perror(ebuff);
+		return 1;
+	}
+	printf("max size:%uKB.\n", real_sz >> 10);
     /* munmap(inqBuff, 8000); */
     /* could call munmap(inqBuff, INQ_REPLY_LEN) here but following close()
        causes this too happen anyway */
-    inqBuff2 = (unsigned char *)mmap(NULL, res_sz, PROT_READ | PROT_WRITE,
-                                     MAP_SHARED, sg_fd, 0);
+    inqBuff2 = (unsigned char *)mmap(NULL, real_sz, PROT_READ | PROT_WRITE,
+                                     MAP_SHARED, sg1_fd, 0);
     if (MAP_FAILED == inqBuff2) {
         snprintf(ebuff, EBUFF_SZ, "sg_simple4: error using mmap() 2 on "
                  "file: %s", file_name);
@@ -183,17 +219,61 @@ int main(int argc, char * argv[])
         return 1;
     }
 
+    int sg2_fd;
+    unsigned char *inqBuff3;
+    /* N.B. An access mode of O_RDWR is required for some SCSI commands */
+    if ((sg2_fd = open(file_name, O_RDWR)) < 0) {
+        snprintf(ebuff, EBUFF_SZ,
+                 "sg_simple4: error opening file: %s", file_name);
+        perror(ebuff);
+        return 1;
+    }
+    /* Just to be safe, check we have a new sg device by trying an ioctl */
+    if ((ioctl(sg2_fd, SG_GET_VERSION_NUM, &k) < 0) || (k < 30122)) {
+        printf("sg_simple4: %s needs sg driver version >= 3.1.22\n",
+               file_name);
+        close(sg2_fd);
+        return 1;
+    }
+    	
+	if (ioctl(sg2_fd, SG_SET_RESERVED_SIZE, &res_sz) < 0) {
+		snprintf(ebuff, EBUFF_SZ, "sg_set_reserved_size: error using ioctl on "
+			 "file: %s", file_name);
+		perror(ebuff);
+		return 1;
+	}
+	real_sz = 0;
+    	if (ioctl(sg2_fd, SG_GET_RESERVED_SIZE, &real_sz) < 0) {
+		snprintf(ebuff, EBUFF_SZ, "sg_get_reserved_size: error using ioctl on "
+			 "file: %s", file_name);
+		perror(ebuff);
+		return 1;
+	}
+	printf("max size:%uKB.\n", real_sz >> 10);
+    /* munmap(inqBuff, 8000); */
+    /* could call munmap(inqBuff, INQ_REPLY_LEN) here but following close()
+       causes this too happen anyway */
+    inqBuff3 = (unsigned char *)mmap(NULL, real_sz, PROT_READ | PROT_WRITE,
+                                     MAP_SHARED, sg2_fd, 0);
+    if (MAP_FAILED == inqBuff3) {
+        snprintf(ebuff, EBUFF_SZ, "sg_simple4: error using mmap() 2 on "
+                 "file: %s", file_name);
+        perror(ebuff);
+        return 1;
+    }
 
 	 
 	memset(inqBuff, 0, res_sz);
 	memset(inqBuff2, 0, res_sz);
+	memset(inqBuff3, 0, res_sz);
 
-	//for (int i = 0; i < res_sz; i+=0x1000) {
-	//    
-	//	printf("buff virt addr:%lx, phys addr:%lx.\n", (uintptr_t)inqBuff + i, get_physical_addr((uintptr_t)inqBuff) + i);
-	//	printf("buff2 virt addr:%lx, phys addr:%lx.\n", (uintptr_t)inqBuff2 + i, get_physical_addr((uintptr_t)inqBuff2) + i);
+	for (int i = 0; i < res_sz; i+=0x8000) {
+	    
+		printf("buff virt addr:%lx, phys addr:%lx.\n", (uintptr_t)inqBuff + i, get_physical_addr((uintptr_t)inqBuff) + i);
+		printf("buff2 virt addr:%lx, phys addr:%lx.\n", (uintptr_t)inqBuff2 + i, get_physical_addr((uintptr_t)inqBuff2) + i);
+		printf("buff3 virt addr:%lx, phys addr:%lx.\n", (uintptr_t)inqBuff3 + i, get_physical_addr((uintptr_t)inqBuff3) + i);
 
-	//}
+	}
  
     //if (inqBuff2[0])
     //    printf("non-null char at inqBuff2[0]\n");
@@ -215,5 +295,7 @@ int main(int argc, char * argv[])
     //}
     
     close(sg_fd);
+    close(sg1_fd);
+    close(sg2_fd);
     return 0;
 }
