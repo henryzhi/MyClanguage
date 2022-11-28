@@ -1,0 +1,2 @@
+/home/zzlenovo/minghua/kernel_drv/hello.ko
+/home/zzlenovo/minghua/kernel_drv/drv.o /home/zzlenovo/minghua/kernel_drv/util.o /home/zzlenovo/minghua/kernel_drv/inl_hook.o /home/zzlenovo/minghua/kernel_drv/rh_trr.o /home/zzlenovo/minghua/kernel_drv/udis86/decode.o /home/zzlenovo/minghua/kernel_drv/udis86/syn-intel.o /home/zzlenovo/minghua/kernel_drv/udis86/itab.o /home/zzlenovo/minghua/kernel_drv/udis86/syn-att.o /home/zzlenovo/minghua/kernel_drv/udis86/syn.o /home/zzlenovo/minghua/kernel_drv/udis86/udis86.o
